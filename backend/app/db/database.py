@@ -6,7 +6,8 @@ from app.core.config import settings
 DATABASE_URL = settings.database_url
 engine = sqlalchemy.create_engine(DATABASE_URL)
 SessionLocal = sqlalchemy.orm.sessionmaker(bind=engine, autoflush=True, autocommit=False)
-
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 class Base(DeclarativeBase):
     pass    
 
