@@ -1,0 +1,125 @@
+# ==========================================
+# 1. ENVIRONMENT VARIABLES & SECRETS (NEVER COMMIT)
+# ==========================================
+.env
+.env.*
+*.env
+!.env.example
+
+# ==========================================
+# 2. PYTHON / FASTAPI
+# ==========================================
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Unit test / coverage reports
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Local databases
+*.sqlite
+*.sqlite3
+*.db
+
+# ==========================================
+# 3. NODE.JS / REACT (VITE)
+# ==========================================
+node_modules/
+*/node_modules/
+
+# Production build outputs
+dist/
+dist-ssr/
+*/dist/
+
+# Local env files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# npm/yarn/pnpm logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Vite / bundler caches
+.vite/
+.eslintcache
+
+# ==========================================
+# 4. MEDIA & UPLOADS
+# ==========================================
+uploads/
+*/uploads/
+!uploads/.gitkeep
+
+
+# ==========================================
+# 5. OS & EDITOR ARTIFACTS
+# ==========================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Visual Studio Code & JetBrains
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
