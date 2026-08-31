@@ -35,11 +35,10 @@ def root():
 
 
 origins = [
-    "http://localhost:5173",  # Vite localhost
-    "http://127.0.0.1:5173",  # Vite 127.0.0.1
-    "http://127.0.0.1:5500",
-    "http://localhost:5500",  # Live server
-    settings.frontend_url
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://ecommerce-platform-2asb447z1-mr-robot12.vercel.app",
+    settings.frontend_url,
 ]
 
 
