@@ -292,7 +292,7 @@ export default function ProductDetailsPage() {
           console.warn("Backend add to cart error:", err);
           alert(
             err.message === "Failed to fetch"
-              ? "Unable to connect to the backend server. Please make sure the FastAPI server is running on port 8000."
+              ? "Unable to connect to the backend server. Please make sure the backend API is reachable."
               : err.message || "Failed to add item to cart."
           );
           return;

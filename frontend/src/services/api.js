@@ -1,4 +1,6 @@
-export const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
+const rawApiUrl = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE || "http://localhost:8000";
+export const API_URL = rawApiUrl.replace(/\/+$/, "");
+export const API_BASE = API_URL;
 
 /**
  * Construct full image URL from backend image path.
@@ -12,7 +14,7 @@ export function getImageUrl(imagePath) {
     return imagePath;
   }
   const normalizedPath = imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
-  return `${API_BASE}${normalizedPath}`;
+  return `${API_URL}${normalizedPath}`;
 }
 
 /**
@@ -104,7 +106,7 @@ export function getCartItemImageUrl(item) {
  * @returns {Promise<Array>} Array of category objects with nested children
  */
 export async function fetchCategories() {
-  const response = await fetch(`${API_BASE}/categories`);
+  const response = await fetch(`${API_URL}/categories`);
   if (!response.ok) {
     throw new Error(`Failed to fetch categories: ${response.status}`);
   }
@@ -118,7 +120,7 @@ export async function fetchCategories() {
  * @returns {Promise<Array>} Array of product objects
  */
 export async function fetchProducts(params = null) {
-  let url = `${API_BASE}/products`;
+  let url = `${API_URL}/products`;
 
   if (params) {
     if (typeof params === "number" || (typeof params === "string" && !isNaN(Number(params)))) {
@@ -161,7 +163,7 @@ export async function fetchProducts(params = null) {
  * @returns {Promise<object>} Product object
  */
 export async function fetchProductById(id) {
-  const response = await fetch(`${API_BASE}/products/${id}`);
+  const response = await fetch(`${API_URL}/products/${id}`);
   if (!response.ok) {
     if (response.status === 404) {
       throw new Error("Product not found");
@@ -178,7 +180,7 @@ export async function fetchProductById(id) {
  */
 export async function fetchProductVariants(id) {
   try {
-    const response = await fetch(`${API_BASE}/products/${id}/variants`);
+    const response = await fetch(`${API_URL}/products/${id}/variants`);
     if (!response.ok) {
       return [];
     }
@@ -217,7 +219,7 @@ export function findCategoryAndParent(nodes, targetId, parent = null) {
  */
 export async function fetchProductReviews(productId) {
   try {
-    const response = await fetch(`${API_BASE}/reviews?product_id=${productId}`);
+    const response = await fetch(`${API_URL}/reviews?product_id=${productId}`);
     if (!response.ok) {
       return [];
     }
@@ -235,8 +237,8 @@ export async function fetchProductReviews(productId) {
  */
 export async function deleteProductImage(imageId, productId = null) {
   const url = productId
-    ? `${API_BASE}/products/${productId}/images/${imageId}`
-    : `${API_BASE}/products/images/${imageId}`;
+    ? `${API_URL}/products/${productId}/images/${imageId}`
+    : `${API_URL}/products/images/${imageId}`;
   const response = await fetch(url, {
     method: "DELETE",
     headers: getAuthHeaders(),
@@ -281,7 +283,7 @@ export function getAuthHeaders() {
  * Fetch current user's cart.
  */
 export async function fetchCart() {
-  const response = await fetch(`${API_BASE}/cart/`, {
+  const response = await fetch(`${API_URL}/cart/`, {
     headers: getAuthHeaders(),
   });
   if (!response.ok) {
@@ -298,7 +300,7 @@ export async function fetchCart() {
  * @param {Array<{product_id: number, variant_id?: number|null, quantity: number}>} products
  */
 export async function addToCart(products) {
-  const response = await fetch(`${API_BASE}/cart/items`, {
+  const response = await fetch(`${API_URL}/cart/items`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify({ products }),
@@ -319,7 +321,7 @@ export async function addToCart(products) {
  * @param {number} quantity
  */
 export async function updateCartItemQuantity(itemId, quantity) {
-  const response = await fetch(`${API_BASE}/cart/items/${itemId}`, {
+  const response = await fetch(`${API_URL}/cart/items/${itemId}`, {
     method: "PATCH",
     headers: getAuthHeaders(),
     body: JSON.stringify({ quantity }),
@@ -339,7 +341,7 @@ export async function updateCartItemQuantity(itemId, quantity) {
  * @param {number} itemId
  */
 export async function deleteCartItem(itemId) {
-  const response = await fetch(`${API_BASE}/cart/items/${itemId}`, {
+  const response = await fetch(`${API_URL}/cart/items/${itemId}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
   });
@@ -357,7 +359,7 @@ export async function deleteCartItem(itemId) {
  * Clear all cart items.
  */
 export async function clearCart() {
-  const response = await fetch(`${API_BASE}/cart/`, {
+  const response = await fetch(`${API_URL}/cart/`, {
     method: "DELETE",
     headers: getAuthHeaders(),
   });
@@ -375,7 +377,7 @@ export async function clearCart() {
  * Fetch checkout summary preview (GET /cart/checkout).
  */
 export async function fetchCheckoutSummary() {
-  const response = await fetch(`${API_BASE}/cart/checkout`, {
+  const response = await fetch(`${API_URL}/cart/checkout`, {
     headers: getAuthHeaders(),
   });
   if (!response.ok) {
@@ -398,7 +400,7 @@ export async function fetchCheckoutSummary() {
  * }} payload
  */
 export async function createCheckoutSession(payload) {
-  const response = await fetch(`${API_BASE}/cart/checkout`, {
+  const response = await fetch(`${API_URL}/cart/checkout`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
@@ -418,7 +420,7 @@ export async function createCheckoutSession(payload) {
  * @param {{ checkout_id: number }} payload
  */
 export async function createOrder(payload) {
-  const response = await fetch(`${API_BASE}/orders`, {
+  const response = await fetch(`${API_URL}/orders`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
@@ -440,7 +442,7 @@ export async function createOrder(payload) {
  * @returns {Promise<{ checkout_url: string }>}
  */
 export async function createOrderPayment(orderId, payload = { payment_method: "STRIPE" }) {
-  const response = await fetch(`${API_BASE}/orders/admin/${orderId}/payment`, {
+  const response = await fetch(`${API_URL}/orders/admin/${orderId}/payment`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
@@ -480,7 +482,7 @@ export async function fetchPaymentStatus(orderId) {
   const numericId = parseInt(cleanId, 10);
   const finalId = isNaN(numericId) ? cleanId : numericId;
 
-  const response = await fetch(`${API_BASE}/payment/status/${finalId}`, {
+  const response = await fetch(`${API_URL}/payment/status/${finalId}`, {
     headers: getAuthHeaders(),
   });
   if (!response.ok) {
@@ -509,7 +511,7 @@ export async function fetchPaymentStatus(orderId) {
  */
 export async function loginUser(credentials) {
 
-  const response = await fetch(`${API_BASE}/auth/login`, {
+  const response = await fetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(credentials),
@@ -529,7 +531,7 @@ export async function loginUser(credentials) {
  * @returns {Promise<{ id: number, username: string, email: string }>}
  */
 export async function registerUser(userData) {
-  const response = await fetch(`${API_BASE}/auth/register`, {
+  const response = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(userData),
@@ -548,7 +550,7 @@ export async function registerUser(userData) {
  * @returns {Promise<{ id: number, username: string, email: string }>}
  */
 export async function fetchUserProfile() {
-  const response = await fetch(`${API_BASE}/user/me`, {
+  const response = await fetch(`${API_URL}/user/me`, {
     headers: getAuthHeaders(),
   });
 
@@ -569,7 +571,7 @@ export async function fetchUserProfile() {
  * @returns {Promise<{ id: number, username: string, email: string }>}
  */
 export async function updateUserProfile(payload) {
-  const response = await fetch(`${API_BASE}/user/profile`, {
+  const response = await fetch(`${API_URL}/user/profile`, {
     method: "PATCH",
     headers: getAuthHeaders(),
     body: JSON.stringify(payload),
@@ -591,7 +593,7 @@ export async function updateUserProfile(payload) {
  * @returns {Promise<Array>} List of shipping addresses
  */
 export async function fetchShippingAddresses() {
-  const response = await fetch(`${API_BASE}/shipping`, {
+  const response = await fetch(`${API_URL}/shipping`, {
     headers: getAuthHeaders(),
   });
 
@@ -612,7 +614,7 @@ export async function fetchShippingAddresses() {
  * @returns {Promise<object>} Created address
  */
 export async function createShippingAddress(addressData) {
-  const response = await fetch(`${API_BASE}/shipping`, {
+  const response = await fetch(`${API_URL}/shipping`, {
     method: "POST",
     headers: getAuthHeaders(),
     body: JSON.stringify(addressData),
@@ -636,7 +638,7 @@ export async function createShippingAddress(addressData) {
  * @returns {Promise<object>} Updated address
  */
 export async function updateShippingAddress(addressId, addressData) {
-  const response = await fetch(`${API_BASE}/shipping/${addressId}`, {
+  const response = await fetch(`${API_URL}/shipping/${addressId}`, {
     method: "PUT",
     headers: getAuthHeaders(),
     body: JSON.stringify(addressData),
@@ -659,7 +661,7 @@ export async function updateShippingAddress(addressId, addressData) {
  * @returns {Promise<boolean>}
  */
 export async function deleteShippingAddress(addressId) {
-  const response = await fetch(`${API_BASE}/shipping/${addressId}`, {
+  const response = await fetch(`${API_URL}/shipping/${addressId}`, {
     method: "DELETE",
     headers: getAuthHeaders(),
   });
@@ -680,7 +682,7 @@ export async function deleteShippingAddress(addressId) {
  * @returns {Promise<Array>} List of user orders
  */
 export async function fetchUserOrders() {
-  const response = await fetch(`${API_BASE}/orders`, {
+  const response = await fetch(`${API_URL}/orders`, {
     headers: getAuthHeaders(),
   });
 
@@ -722,7 +724,7 @@ export async function fetchOrderDetails(orderId) {
   const numericId = parseInt(cleanId, 10);
   const finalId = isNaN(numericId) ? cleanId : numericId;
 
-  const response = await fetch(`${API_BASE}/orders/${finalId}`, {
+  const response = await fetch(`${API_URL}/orders/${finalId}`, {
     headers: getAuthHeaders(),
   });
 
@@ -744,7 +746,7 @@ export async function fetchOrderDetails(orderId) {
  * @returns {Promise<object>}
  */
 export async function cancelUserOrder(orderId) {
-  const response = await fetch(`${API_BASE}/orders/${orderId}/cancel`, {
+  const response = await fetch(`${API_URL}/orders/${orderId}/cancel`, {
     method: "POST",
     headers: getAuthHeaders(),
   });
