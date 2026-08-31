@@ -123,3 +123,4 @@ $RECYCLE.BIN/
 *.njsproj
 *.sln
 *.sw?
+.vscode/settings.json
