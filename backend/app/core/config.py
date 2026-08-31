@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     safepay_webhook_secret: str
 
     database_url: str
+    frontend_url:str
 
     model_config = SettingsConfigDict(
         env_file="app/core/.env",

@@ -4,7 +4,7 @@ from .api import auth, users, products, categories, cart, orders, reviews,paymen
 from app.core.exceptions import AdminRequiredError, UserNotFoundError
 from app.core.exception_handler import user_not_found_handler, admin_permission_handler
 from app.models.users import Base
-
+from app.core.config import settings
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(title="E-Commerce System")
@@ -39,6 +39,7 @@ origins = [
     "http://127.0.0.1:5173",  # Vite 127.0.0.1
     "http://127.0.0.1:5500",
     "http://localhost:5500",  # Live server
+    settings.frontend_url
 ]
 
 
