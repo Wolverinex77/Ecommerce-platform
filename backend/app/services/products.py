@@ -10,6 +10,15 @@ from app.core.exceptions import (
     ProductImageNotFoundError,
 )
 
+from pathlib import Path
+from PIL import Image
+from app.models import ProductImage
+import io
+import uuid
+from fastapi import HTTPException, UploadFile
+from app.core.config import settings
+from app.core.storage import r2_client
+
 from app.core.enums import InventoryType
 
 def create_product(payload:ProductCreate,admin:User,db:Session):
@@ -73,7 +82,7 @@ def create_product_bulk(
                     color=variant_item.color,
                     size=variant_item.size,
                     quantity=variant_item.quantity
-                )
+                ) 
                 db.add(variant_db)
 
     db.commit()
@@ -171,15 +180,6 @@ def delete_products(id:int,admin:User,db:Session):
     db.commit()
 
 
-import io
-import uuid
-from pathlib import Path
-from PIL import Image
-from fastapi import UploadFile, HTTPException
-from app.models import ProductImage
-
-UPLOAD_DIR = Path("uploads/products")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_TYPES = {
     "image/jpeg": ".jpg",
@@ -242,11 +242,18 @@ async def upload_product_images(
 
         extension = FORMAT_EXTENSIONS.get(image_format)
         
-        filename = f"{uuid.uuid4()}{extension}"
-        file_path = UPLOAD_DIR / filename
-        file_path.write_bytes(contents)
+        key = f"products/{uuid.uuid4()}{extension}"
 
-        image_url = f"/uploads/products/{filename}"
+        # Upload image to Cloudflare R2
+        r2_client.put_object(
+            Bucket=settings.r2_bucket_name,
+            Key=key,
+            Body=contents,
+            ContentType=image.content_type,
+        )
+
+        image_url = key
+
         
         if is_primary:
             for existing_image in product.images:
@@ -274,26 +281,24 @@ async def upload_product_images(
         "images":created_images
     }
 
-
 def delete_product_image(
     image_id: int,
     db: Session,
     product_id: int | None = None,
 ):
     image = db.get(ProductImage, image_id)
+
     if not image:
         raise ProductImageNotFoundError()
+
     if product_id is not None and image.product_id != product_id:
         raise ProductImageNotFoundError()
 
-    # Delete physical file from uploads folder if it exists
-    filename = Path(image.image_url).name
-    file_path = UPLOAD_DIR / filename
-    if file_path.exists() and file_path.is_file():
-        try:
-            file_path.unlink()
-        except Exception:
-            pass
+    # Delete image from Cloudflare R2
+    r2_client.delete_object(
+        Bucket=settings.r2_bucket_name,
+        Key=image.image_url,
+    )
 
     was_primary = image.is_primary
     product = image.product
@@ -305,5 +310,5 @@ def delete_product_image(
         product.images[0].is_primary = True
 
     db.commit()
-    return {"message": "Product image deleted successfully"}
 
+    return {"message": "Product image deleted successfully"}

@@ -22,9 +22,15 @@ def get_current_user(
     db: Session = Depends(get_db)
 ):
     user_id = decode_access_token(token)
-    print(user_id)
-    stmt = select(User).where(User.id == user_id)
-    print(stmt)
+    if not user_id:
+        raise UserNotFoundError()
+
+    try:
+        user_id_int = int(user_id)
+    except (ValueError, TypeError):
+        raise UserNotFoundError()
+
+    stmt = select(User).where(User.id == user_id_int)
     db_user = db.execute(stmt).scalars().one_or_none()
     
     if db_user is None:
