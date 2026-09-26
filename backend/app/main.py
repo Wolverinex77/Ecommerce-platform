@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .api import auth, users, products, categories, cart, orders, reviews,payment,shipping
-from app.core import test
 from app.core.exceptions import AdminRequiredError, UserNotFoundError
 from app.core.exception_handler import user_not_found_handler, admin_permission_handler
 from app.models.users import Base
@@ -20,7 +19,6 @@ app.include_router(orders.router)
 app.include_router(reviews.router)
 app.include_router(shipping.router)
 app.include_router(payment.router)
-app.include_router(test.router)
 app.add_exception_handler(
     UserNotFoundError,
     user_not_found_handler #type:ignore
