@@ -1,5 +1,5 @@
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 from decimal import Decimal
 from datetime import datetime
 from app.core.enums import OrderStatus, PaymentMethod,PaymentStatus
@@ -24,8 +24,10 @@ class OrderItemResponse(BaseModel):
 
 
 class OrderResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
-    status: OrderStatus
+    status: OrderStatus = Field(validation_alias="order_status")
     
 
 class OrderDetailResponse(OrderResponse):
@@ -41,4 +43,3 @@ class PaymentCreate(BaseModel):
 class OrderShippingCreate(BaseModel):
     checkout_id: int
     
-

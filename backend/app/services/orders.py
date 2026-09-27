@@ -122,7 +122,7 @@ def update_order_status(payload:OrderUpdate,id:int,admin:User,db:Session):
     new_order_status=payload.order_status
     if new_order_status not in allowed_order_transitions[current_order_status]:
             raise InvalidStateTransition()
-    order.status=new_order_status #type:ignore
+    order.order_status = new_order_status
     if db_payment.payment_method == PaymentMethod.COD:
         if order.order_status == OrderStatus.CANCELLED:
         #Restock
