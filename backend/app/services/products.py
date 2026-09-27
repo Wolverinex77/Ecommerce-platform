@@ -95,7 +95,7 @@ def create_product_bulk(
 
 #Displaying product cards
 def get_products(db:Session,category_id,min_price,max_price,in_stock,size):
-    query=select(Product).options(selectinload(Product.images))
+    query=select(Product).options(selectinload(Product.images), selectinload(Product.variants))
    
     if size is not None:
         query = query.where(Product.size == size)
@@ -129,6 +129,18 @@ def get_products(db:Session,category_id,min_price,max_price,in_stock,size):
             if image.is_primary:
                 primary_image=image.image_url
                 break
+
+        if product.inventory_type == InventoryType.Varient:
+            total_stock = sum((v.quantity or 0) for v in (product.variants or []))
+        else:
+            total_stock = product.stock_quantity if product.stock_quantity is not None else 0
+
+        inv_type = (
+            product.inventory_type.value
+            if hasattr(product.inventory_type, "value")
+            else str(product.inventory_type)
+        )
+
         products_response.append(
             ProductResponse(
                 id=product.id,
@@ -136,7 +148,10 @@ def get_products(db:Session,category_id,min_price,max_price,in_stock,size):
                 price=product.price,
                 color=product.color,
                 size=product.size,
-                primary_image=primary_image
+                primary_image=primary_image,
+                stock_quantity=total_stock,
+                inventory_type=inv_type,
+                category_id=product.category_id,
             )
         )
     

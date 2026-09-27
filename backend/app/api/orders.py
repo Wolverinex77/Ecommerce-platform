@@ -56,7 +56,8 @@ def get_user_orders_id(id:int,user:User=Depends(get_current_user),db:Session=Dep
     except exceptions.OrderNotFoundError:
         raise HTTPException(status_code=404, detail="Order not found")
 
-@router.patch('/admin/{order_id}',response_model=OrderResponse)
+@router.patch('/admin/{order_id}', response_model=OrderResponse)
+@router.put('/admin/{order_id}', response_model=OrderResponse)
 def update_order(order:OrderUpdate,order_id:int,admin:User=Depends(require_admin),db:Session=Depends(get_db)):
     try:
         return orders.update_order_status(order,order_id,admin,db)
@@ -83,6 +84,13 @@ def update_order_status(payment_method:OrderUpdate,order_id:int,admin:User=Depen
         raise HTTPException(status_code=404, detail="Order not found")
     except exceptions.InvalidStateTransition:
         raise HTTPException(status_code=400, detail="Invalid status transition")
+
+@router.delete('/admin/{order_id}')
+def delete_order(order_id: int, admin: User = Depends(require_admin), db: Session = Depends(get_db)):
+    try:
+        return orders.delete_order(order_id, admin, db)
+    except exceptions.OrderNotFoundError:
+        raise HTTPException(status_code=404, detail="Order not found")
     
 @router.post('/admin/{order_id}/payment') #Online Payment
 def create_payment(payment_method:PaymentCreate,order_id:int,user:User=Depends(get_current_user),db:Session=Depends(get_db)):

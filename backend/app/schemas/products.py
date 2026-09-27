@@ -84,6 +84,10 @@ class ProductResponse(BaseModel):
     color: str | None = None
     size: str | None = None
     primary_image: str | None = None
+    stock_quantity: int | None = None
+    inventory_type: str | None = None
+    category_id: int | None = None
+    model_config = ConfigDict(from_attributes=True)
 
 class ProductDetailResponse(BaseModel):
     id: int
@@ -112,3 +116,4 @@ class ProductUpdate(BaseModel):
 class ProductSummary(BaseModel):
     id: int
     name: str
+    model_config = ConfigDict(from_attributes=True)

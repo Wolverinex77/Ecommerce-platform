@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   fetchProductById,
@@ -115,21 +115,49 @@ export default function ProductDetailsPage() {
       String(product.inventory_type).toLowerCase().includes("var")) ||
     (variants && variants.length > 0);
 
-  // Extract unique colors and sizes for variant products
-  const availableColors = Array.from(
-    new Set(variants.map((v) => v.color).filter(Boolean))
-  );
-  const availableSizes = Array.from(
-    new Set(variants.map((v) => v.size).filter(Boolean))
-  );
+  // Extract unique colors for variant products
+  const availableColors = useMemo(() => {
+    return Array.from(new Set(variants.map((v) => v.color).filter(Boolean)));
+  }, [variants]);
+
+  // Extract unique sizes that strictly belong to the currently selected color
+  const availableSizes = useMemo(() => {
+    if (availableColors.length > 0 && selectedColor) {
+      const sizesForColor = variants
+        .filter(
+          (v) =>
+            v.color &&
+            v.color.trim().toLowerCase() === selectedColor.trim().toLowerCase()
+        )
+        .map((v) => v.size)
+        .filter(Boolean);
+      return Array.from(new Set(sizesForColor));
+    }
+    return Array.from(new Set(variants.map((v) => v.size).filter(Boolean)));
+  }, [variants, availableColors.length, selectedColor]);
+
+  // Ensure selectedSize is always valid for the active color's available sizes
+  useEffect(() => {
+    if (availableSizes.length > 0) {
+      if (!selectedSize || !availableSizes.includes(selectedSize)) {
+        setSelectedSize(availableSizes[0]);
+      }
+    } else {
+      setSelectedSize("");
+    }
+  }, [availableSizes]);
 
   // Find currently matched variant
   const selectedVariant = isVariantType
     ? variants.find((v) => {
-      const colorMatch = !selectedColor || v.color === selectedColor;
-      const sizeMatch = !selectedSize || v.size === selectedSize;
-      return colorMatch && sizeMatch;
-    })
+        const colorMatch =
+          !selectedColor ||
+          (v.color && v.color.trim().toLowerCase() === selectedColor.trim().toLowerCase());
+        const sizeMatch =
+          !selectedSize ||
+          (v.size && v.size.trim().toLowerCase() === selectedSize.trim().toLowerCase());
+        return colorMatch && sizeMatch;
+      })
     : null;
 
   // Determine stock availability
@@ -256,15 +284,42 @@ export default function ProductDetailsPage() {
     });
   };
 
+  const handleColorChange = (color) => {
+    setSelectedColor(color);
+    setImageError(false);
+
+    const validSizes = variants
+      .filter(
+        (v) =>
+          v.color && v.color.trim().toLowerCase() === color.trim().toLowerCase()
+      )
+      .map((v) => v.size)
+      .filter(Boolean);
+
+    if (validSizes.length > 0) {
+      if (!selectedSize || !validSizes.includes(selectedSize)) {
+        setSelectedSize(validSizes[0]);
+      }
+    } else {
+      setSelectedSize("");
+    }
+  };
+
   const handleAddToCart = async () => {
     if (isOutOfStock) return;
-    if (isVariantType && availableColors.length > 0 && !selectedColor) {
-      alert("Please select a color before adding to cart.");
-      return;
-    }
-    if (isVariantType && availableSizes.length > 0 && !selectedSize) {
-      alert("Please select a size before adding to cart.");
-      return;
+    if (isVariantType) {
+      if (availableColors.length > 0 && !selectedColor) {
+        alert("Please select a color before adding to cart.");
+        return;
+      }
+      if (availableSizes.length > 0 && !selectedSize) {
+        alert("Please select a size before adding to cart.");
+        return;
+      }
+      if (!selectedVariant) {
+        alert("Selected variant combination is not available. Please choose a valid color and size.");
+        return;
+      }
     }
 
     const vid = selectedVariant?.id || null;
@@ -523,10 +578,7 @@ export default function ProductDetailsPage() {
                         <button
                           key={color}
                           type="button"
-                          onClick={() => {
-                            setSelectedColor(color);
-                            setImageError(false);
-                          }}
+                          onClick={() => handleColorChange(color)}
                           className={`px-4 py-2.5 text-sm font-semibold rounded-sm border transition-all ${isSelected
                               ? "bg-forest text-black border-forest font-bold shadow-md ring-1 ring-forest/50"
                               : "bg-surface text-white border-hairline hover:border-forest"

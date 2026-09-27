@@ -173,6 +173,8 @@ export async function fetchProductById(id) {
   return response.json();
 }
 
+export const fetchProductDetails = fetchProductById;
+
 /**
  * Fetch variants for a product by ID.
  * @param {number|string} id - Product ID
@@ -761,5 +763,326 @@ export async function cancelUserOrder(orderId) {
 
   return response.json();
 }
+
+/* ==========================================================================
+   ADMIN ENDPOINTS (Orders, Products, Categories, Images)
+   ========================================================================== */
+
+/**
+ * Fetch all orders across the store (Admin only).
+ * GET /orders/admin/view
+ * @returns {Promise<Array>} List of orders with items
+ */
+export async function fetchAdminOrders() {
+  const response = await fetch(`${API_URL}/orders/admin/view`, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("UNAUTHORIZED");
+    if (response.status === 403) throw new Error("ADMIN_REQUIRED");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to fetch admin orders");
+  }
+
+  return response.json();
+}
+
+/**
+ * Update an order's status (Admin only).
+ * PATCH /orders/admin/{order_id}
+ * @param {number} orderId
+ * @param {string} newStatus - "pending" | "confirmed" | "shipped" | "delivered" | "cancelled"
+ * @returns {Promise<object>}
+ */
+export async function updateAdminOrderStatus(orderId, newStatus) {
+  const response = await fetch(`${API_URL}/orders/admin/${orderId}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ order_status: newStatus }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("UNAUTHORIZED");
+    if (response.status === 403) throw new Error("ADMIN_REQUIRED");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to update order status");
+  }
+
+  return response.json();
+}
+
+/**
+ * Update payment / order status (Admin only).
+ * PUT /orders/admin/{order_id}/payment
+ * @param {number} orderId
+ * @param {string} orderStatus
+ * @returns {Promise<object>}
+ */
+export async function updateAdminOrderPaymentStatus(orderId, orderStatus) {
+  const response = await fetch(`${API_URL}/orders/admin/${orderId}/payment`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ order_status: orderStatus }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("UNAUTHORIZED");
+    if (response.status === 403) throw new Error("ADMIN_REQUIRED");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to update payment status");
+  }
+
+  return response.json();
+}
+
+/**
+ * Delete a pending order (Admin only).
+ * DELETE /orders/admin/{order_id}
+ * @param {number} orderId
+ * @returns {Promise<object>}
+ */
+export async function deleteAdminOrder(orderId) {
+  const response = await fetch(`${API_URL}/orders/admin/${orderId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("UNAUTHORIZED");
+    if (response.status === 403) throw new Error("ADMIN_REQUIRED");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to delete order");
+  }
+
+  return response.json();
+}
+
+/**
+ * Create a new product (Admin only).
+ * POST /products
+ * @param {object} productData
+ * @returns {Promise<object>}
+ */
+export async function createAdminProduct(productData) {
+  const response = await fetch(`${API_URL}/products`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(productData),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("UNAUTHORIZED");
+    if (response.status === 403) throw new Error("ADMIN_REQUIRED");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to create product");
+  }
+
+  return response.json();
+}
+
+/**
+ * Update an existing product (Admin only).
+ * PUT /products/{id}
+ * @param {number} productId
+ * @param {object} productData
+ * @returns {Promise<object>}
+ */
+export async function updateAdminProduct(productId, productData) {
+  const response = await fetch(`${API_URL}/products/${productId}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(productData),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("UNAUTHORIZED");
+    if (response.status === 403) throw new Error("ADMIN_REQUIRED");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to update product");
+  }
+
+  return response.json();
+}
+
+/**
+ * Delete a product (Admin only).
+ * DELETE /products/{id}
+ * @param {number} productId
+ * @returns {Promise<boolean>}
+ */
+export async function deleteAdminProduct(productId) {
+  const response = await fetch(`${API_URL}/products/${productId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("UNAUTHORIZED");
+    if (response.status === 403) throw new Error("ADMIN_REQUIRED");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to delete product");
+  }
+
+  return true;
+}
+
+/**
+ * Bulk create products (Admin only).
+ * POST /products/bulk
+ * @param {Array<object>} productsList
+ * @returns {Promise<object>}
+ */
+export async function createAdminProductsBulk(productsList) {
+  const response = await fetch(`${API_URL}/products/bulk`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ products: productsList }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("UNAUTHORIZED");
+    if (response.status === 403) throw new Error("ADMIN_REQUIRED");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to bulk create products");
+  }
+
+  return response.json();
+}
+
+/**
+ * Upload images for a product (Admin only).
+ * POST /products/{product_id}/images
+ * @param {number} productId
+ * @param {FileList|Array<File>} files
+ * @param {boolean} isPrimary
+ * @param {number|null} variantId
+ * @returns {Promise<object>}
+ */
+export async function uploadAdminProductImages(productId, files, isPrimary = false, variantId = null) {
+  const token = getAuthToken();
+  const formData = new FormData();
+
+  for (const file of files) {
+    formData.append("images", file);
+  }
+  formData.append("is_primary", isPrimary ? "true" : "false");
+  if (variantId) {
+    formData.append("variant_id", String(variantId));
+  }
+
+  const headers = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}/products/${productId}/images`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("UNAUTHORIZED");
+    if (response.status === 403) throw new Error("ADMIN_REQUIRED");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to upload product images");
+  }
+
+  return response.json();
+}
+
+/**
+ * Create a new category (Admin only).
+ * POST /categories
+ * @param {{ name: string, parent_id?: number|null }} categoryData
+ * @returns {Promise<object>}
+ */
+export async function createAdminCategory(categoryData) {
+  const response = await fetch(`${API_URL}/categories`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(categoryData),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("UNAUTHORIZED");
+    if (response.status === 403) throw new Error("ADMIN_REQUIRED");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to create category");
+  }
+
+  return response.json();
+}
+
+/**
+ * Bulk create categories (Admin only).
+ * POST /categories/bulk
+ * @param {Array<{ name: string, parent_id?: number|null }>} categoriesList
+ * @returns {Promise<object>}
+ */
+export async function createAdminCategoriesBulk(categoriesList) {
+  const response = await fetch(`${API_URL}/categories/bulk`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+    body: JSON.stringify({ categories: categoriesList }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("UNAUTHORIZED");
+    if (response.status === 403) throw new Error("ADMIN_REQUIRED");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to bulk create categories");
+  }
+
+  return response.json();
+}
+
+/**
+ * Update an existing category (Admin only).
+ * PUT /categories/{id}
+ * @param {number} categoryId
+ * @param {{ name?: string, parent_id?: number|null }} categoryData
+ * @returns {Promise<object>}
+ */
+export async function updateAdminCategory(categoryId, categoryData) {
+  const response = await fetch(`${API_URL}/categories/${categoryId}`, {
+    method: "PUT",
+    headers: getAuthHeaders(),
+    body: JSON.stringify(categoryData),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("UNAUTHORIZED");
+    if (response.status === 403) throw new Error("ADMIN_REQUIRED");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to update category");
+  }
+
+  return response.json();
+}
+
+/**
+ * Delete a category (Admin only).
+ * DELETE /categories/{id}
+ * @param {number} categoryId
+ * @returns {Promise<boolean>}
+ */
+export async function deleteAdminCategory(categoryId) {
+  const response = await fetch(`${API_URL}/categories/${categoryId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) throw new Error("UNAUTHORIZED");
+    if (response.status === 403) throw new Error("ADMIN_REQUIRED");
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || "Failed to delete category");
+  }
+
+  return true;
+}
+
 
 

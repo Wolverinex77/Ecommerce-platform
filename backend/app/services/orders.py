@@ -1,5 +1,5 @@
 
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
 from app.schemas.orders import OrderCreate, OrderUpdate
@@ -73,6 +73,25 @@ def create_order(payload:OrderCreate,user:User,db:Session):
  
     payment=Payment(order_id=order.id,payment_method=db_checkout.payment_method)
     db.add(payment)
+
+    if db_checkout.shipping_address_id:
+        from app.models.shipping import ShippingAddress
+        from app.models.order_shipping import OrderShippingAddress
+        source_addr = db.get(ShippingAddress, db_checkout.shipping_address_id)
+        if source_addr:
+            order_shipping_addr = OrderShippingAddress(
+                order_id=order.id,
+                full_name=source_addr.full_name,
+                phone_number=source_addr.phone_number,
+                country=source_addr.country,
+                state=source_addr.state,
+                city=source_addr.city,
+                postal_code=source_addr.postal_code,
+                address_line_1=source_addr.address_line_1,
+                address_line_2=source_addr.address_line_2,
+                shipping_method=db_checkout.shipping_method,
+            )
+            db.add(order_shipping_addr)
     
     db.commit()
     
@@ -92,55 +111,65 @@ def get_orders_id(id:int,user:User,db:Session):
 
 #Order Status Change
 def update_order_status(payload:OrderUpdate,id:int,admin:User,db:Session):
-    order=db.get(Order,id)
+    order = db.scalars(
+        select(Order)
+        .options(
+            selectinload(Order.order_items).selectinload(OrderItem.product),
+            selectinload(Order.order_items).selectinload(OrderItem.variant),
+            selectinload(Order.payment),
+            selectinload(Order.shipping_address),
+            selectinload(Order.user),
+        )
+        .where(Order.id == id)
+    ).one_or_none()
+
     if not order:
         raise exceptions.OrderNotFoundError()
 
-    order_items_db=order.order_items
-    
-    db_payment=db.scalars(
-            select(Payment).where(Payment.order_id == order.id)
-            ).one()
-    
     allowed_order_transitions = {
-    OrderStatus.PENDING: {
-        OrderStatus.CONFIRMED, 
-        OrderStatus.CANCELLED,
-    },
-    OrderStatus.CONFIRMED: {
-        OrderStatus.SHIPPED,
-        OrderStatus.CANCELLED,
-    },
-    OrderStatus.SHIPPED: {
-        OrderStatus.DELIVERED,
-    },
-    OrderStatus.DELIVERED: set(),
-    OrderStatus.CANCELLED: set(),
-}
+        OrderStatus.PENDING: {
+            OrderStatus.CONFIRMED, 
+            OrderStatus.CANCELLED,
+        },
+        OrderStatus.CONFIRMED: {
+            OrderStatus.SHIPPED,
+            OrderStatus.CANCELLED,
+        },
+        OrderStatus.SHIPPED: {
+            OrderStatus.DELIVERED,
+        },
+        OrderStatus.DELIVERED: set(),
+        OrderStatus.CANCELLED: set(),
+    }
     
-    current_order_status=order.order_status
-    new_order_status=payload.order_status
+    current_order_status = order.order_status
+    new_order_status = payload.order_status
     if new_order_status not in allowed_order_transitions[current_order_status]:
-            raise InvalidStateTransition()
+        raise InvalidStateTransition()
+
     order.order_status = new_order_status
-    if db_payment.payment_method == PaymentMethod.COD:
-        if order.order_status == OrderStatus.CANCELLED:
-        #Restock
-            for item in order_items_db:
-                product=item.product
-                product.stock_quantity += item.quantity
-        elif order.order_status == OrderStatus.DELIVERED:
+
+    db_payment = order.payment
+    if not db_payment:
+        db_payment = db.scalars(
+            select(Payment).where(Payment.order_id == order.id)
+        ).one_or_none()
+
+    # Restock inventory if order is cancelled
+    if order.order_status == OrderStatus.CANCELLED:
+        for item in order.order_items:
+            if item.product and item.product.inventory_type == InventoryType.Simple and item.product.stock_quantity is not None:
+                item.product.stock_quantity += item.quantity
+            elif item.product and item.product.inventory_type == InventoryType.Varient and item.variant and item.variant.quantity is not None:
+                item.variant.quantity += item.quantity
+
+    # For COD orders, when delivered, mark payment as PAID
+    if db_payment and db_payment.payment_method == PaymentMethod.COD:
+        if order.order_status == OrderStatus.DELIVERED:
             db_payment.payment_status = PaymentStatus.PAID
-        #Payment states managed by Webhook
-    if db_payment.payment_method == PaymentMethod.STRIPE:
-        if db_payment.payment_status == PaymentStatus.PAID:
-            order.order_status=OrderStatus.CONFIRMED
-        elif db_payment.payment_status == PaymentStatus.CANCELLED:
-            order.order_status=OrderStatus.CANCELLED
-        elif db_payment.payment_status == PaymentStatus.REFUNDED:
-            #user cancels order or returns after delivery
-            ...
+
     db.commit()
+    db.refresh(order)
     return order    
 
 def cancel_order(order_id, user, db):
@@ -176,10 +205,52 @@ def cancel_order(order_id, user, db):
     
     
 def get_all_orders(admin:User,db:Session): #Admin Access
-    stmt=select(Order)
+    stmt = (
+        select(Order)
+        .options(
+            selectinload(Order.order_items).selectinload(OrderItem.product),
+            selectinload(Order.payment),
+            selectinload(Order.shipping_address),
+            selectinload(Order.user),
+        )
+        .order_by(Order.id.desc())
+    )
     result=db.execute(stmt)
     orders=result.scalars().all()
     return orders
+
+def delete_order(order_id: int, admin: User, db: Session):
+    order = db.scalars(
+        select(Order)
+        .options(
+            selectinload(Order.order_items).selectinload(OrderItem.product),
+            selectinload(Order.order_items).selectinload(OrderItem.variant),
+            selectinload(Order.payment),
+            selectinload(Order.shipping_address),
+        )
+        .where(Order.id == order_id)
+    ).one_or_none()
+
+    if order is None:
+        raise exceptions.OrderNotFoundError()
+
+    if order.order_status not in (OrderStatus.PENDING, OrderStatus.CANCELLED):
+        raise HTTPException(
+            status_code=400,
+            detail="Only pending or cancelled orders can be deleted by admin.",
+        )
+
+    # Restore inventory stock if it was pending and deducted (e.g., COD orders)
+    if order.order_status == OrderStatus.PENDING:
+        for item in order.order_items:
+            if item.product and item.product.inventory_type == InventoryType.Simple and item.product.stock_quantity is not None:
+                item.product.stock_quantity += item.quantity
+            elif item.product and item.product.inventory_type == InventoryType.Varient and item.variant and item.variant.quantity is not None:
+                item.variant.quantity += item.quantity
+
+    db.delete(order)
+    db.commit()
+    return {"message": f"Order #{order_id} deleted successfully"}
 
 
 

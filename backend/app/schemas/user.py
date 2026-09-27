@@ -10,8 +10,8 @@ class UserCreate(BaseModel):
     def check_password(cls, value):
         return validators.validate_password(value)
 class UserLogin(BaseModel):
-    email:EmailStr
-    password:str
+    email: str
+    password: str
 
 class Token(BaseModel):
     access_token: str
@@ -30,6 +30,7 @@ class UserResponse(BaseModel):
     id: int
     username: str
     email: EmailStr
+    is_admin: bool = False
     model_config = {
         "from_attributes": True
     }

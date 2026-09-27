@@ -105,27 +105,30 @@ def process_webhook(raw_body,signature,db):
         payload = json.loads(raw_body)
         print(json.dumps(payload, indent=4))
 
-        order_id=payload["data"]["metadata"]["order_id"]
+        order_id = int(payload["data"]["metadata"]["order_id"])
         order_db = db.scalars(
-    select(Order)
-    .options(
-        selectinload(Order.order_items).selectinload(OrderItem.product),
-        selectinload(Order.order_items).selectinload(OrderItem.variant),
-    )
-    .where(Order.id == order_id)
-).one()
+            select(Order)
+            .options(
+                selectinload(Order.order_items).selectinload(OrderItem.product),
+                selectinload(Order.order_items).selectinload(OrderItem.variant),
+                selectinload(Order.payment),
+            )
+            .where(Order.id == order_id)
+        ).one()
         
-        
-        payment=order_db.payment
+        payment = order_db.payment
         if payload['type'] == 'payment.succeeded':
-            payment.payment_status=PaymentStatus.PAID
-            order_db.order_status=OrderStatus.CONFIRMED 
+            if payment:
+                payment.payment_status = PaymentStatus.PAID
+            order_db.order_status = OrderStatus.CONFIRMED 
         if payload['type'] == 'payment.failed':
-            payment.payment_status=PaymentStatus.FAILED
-            order_db.order_status=OrderStatus.CANCELLED
+            if payment:
+                payment.payment_status = PaymentStatus.FAILED
+            order_db.order_status = OrderStatus.CANCELLED
         if payload['type'] == 'payment.refunded':
-            payment.payment_status=PaymentStatus.REFUNDED
-            order_db.order_status=OrderStatus.CANCELLED
+            if payment:
+                payment.payment_status = PaymentStatus.REFUNDED
+            order_db.order_status = OrderStatus.CANCELLED
         
         if order_db.order_status==OrderStatus.CONFIRMED:
              for item in order_db.order_items:

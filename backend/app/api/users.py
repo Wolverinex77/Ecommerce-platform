@@ -19,7 +19,8 @@ def get_me(current_user:User=Depends(get_current_user)): #->Exception handler us
     
         return UserResponse(id=current_user.id,
                     username=current_user.username,
-                    email=current_user.email)
+                    email=current_user.email,
+                    is_admin=current_user.is_admin)
     
     
 @router.patch('/profile',response_model=UserResponse)

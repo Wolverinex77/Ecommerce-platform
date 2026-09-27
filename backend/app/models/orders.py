@@ -34,12 +34,13 @@ class Order(Base):
 )
     user = relationship("User", back_populates="orders") # M-1
     order_items = relationship("OrderItem", back_populates="order",cascade="all, delete-orphan")
-    payment = relationship("Payment",back_populates="order",uselist=False)
-    shipping_address =relationship(
-            "OrderShippingAddress",
-            back_populates="order",
-            cascade="all, delete-orphan"
-        )   
+    payment = relationship("Payment", back_populates="order", uselist=False, cascade="all, delete-orphan")
+    shipping_address = relationship(
+        "OrderShippingAddress",
+        back_populates="order",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )   
     
 class OrderItem(Base):
     __tablename__ = "order_items"
