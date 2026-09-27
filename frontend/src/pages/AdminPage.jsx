@@ -191,7 +191,7 @@ export default function AdminPage() {
   }, [showToast]);
 
   useEffect(() => {
-    if (currentUser) {
+    if (currentUser?.is_admin) {
       loadAdminData();
     }
   }, [currentUser, loadAdminData]);
@@ -206,6 +206,15 @@ export default function AdminPage() {
       setAuthToken(res.access_token);
       setTokenState(res.access_token);
       const profile = await fetchUserProfile();
+
+      if (!profile?.is_admin) {
+        setAuthToken(null);
+        setTokenState("");
+        setCurrentUser(null);
+        setLoginError("Access denied: This account does not have administrator privileges.");
+        return;
+      }
+
       setCurrentUser(profile);
       showToast(`Welcome back, ${profile.username}!`);
       loadAdminData();
@@ -413,6 +422,53 @@ export default function AdminPage() {
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin" />
           <p className="text-sm text-zinc-400 font-medium tracking-wide">Connecting to ShopEase Admin Panel...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // AUTH GUARD: User is logged in but is NOT an administrator
+  if (currentUser && !currentUser.is_admin) {
+    return (
+      <div className="min-h-screen bg-[#090d14] flex flex-col justify-center items-center px-4 font-sans text-zinc-100">
+        <div className="w-full max-w-md bg-[#131b26] border border-rose-500/30 rounded-2xl p-8 shadow-2xl backdrop-blur-xl text-center">
+          <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shadow-lg shadow-rose-500/10">
+            <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m4-11a4 4 0 00-8 0v4h8V6zM6 10h12a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7a2 2 0 012-2z" />
+            </svg>
+          </div>
+
+          <h1 className="text-xl font-bold tracking-tight text-white mb-2">
+            Access Denied
+          </h1>
+          <p className="text-xs uppercase font-bold tracking-wider text-rose-400 mb-4">
+            Administrator Privileges Required
+          </p>
+
+          <p className="text-xs text-zinc-400 mb-6 leading-relaxed">
+            You are currently signed in as <span className="font-semibold text-zinc-200">{currentUser.username}</span> (<span className="text-zinc-300">{currentUser.email}</span>), but this account is not authorized to access the ShopEase Admin Panel.
+          </p>
+
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              <span>Return to Store</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleAdminLogout}
+              className="w-full py-2.5 px-4 rounded-xl bg-[#1c2636] hover:bg-[#253247] text-zinc-300 hover:text-white font-medium text-xs border border-[#2a384f] transition-all cursor-pointer"
+            >
+              Sign Out & Switch Account
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -270,6 +270,9 @@ export function setAuthToken(token) {
     localStorage.removeItem("token");
     localStorage.removeItem("access_token");
   }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("auth-changed", { detail: { token: token || null } }));
+  }
 }
 
 export function getAuthHeaders() {

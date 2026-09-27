@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import MegaMenu from "./MegaMenu";
 import AuthModal from "./AuthModal";
-import { fetchCart, fetchCategories, getAuthToken, setAuthToken } from "../services/api";
+import { fetchCart, fetchCategories, fetchUserProfile, getAuthToken, setAuthToken } from "../services/api";
 import { getGuestCartCount } from "../services/cartStorage";
 
 /**
@@ -15,6 +15,7 @@ export default function Navbar() {
 
   const [cartCount, setCartCount] = useState(0);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(Boolean(getAuthToken()));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCategoriesAccordionOpen, setIsCategoriesAccordionOpen] = useState(false);
@@ -22,23 +23,47 @@ export default function Navbar() {
 
   const loadCount = useCallback(async () => {
     const token = getAuthToken();
-    setIsLoggedIn(Boolean(token));
+    const hasToken = Boolean(token);
+    setIsLoggedIn(hasToken);
 
-    if (!token) {
-      // Guest mode: read count from localStorage
+    if (!hasToken) {
+      setCurrentUser(null);
       setCartCount(getGuestCartCount());
       return;
     }
 
-    // Authenticated mode: fetch count from backend
+    // Authenticated mode: fetch count and user profile
     try {
-      const cart = await fetchCart();
-      setCartCount(cart?.total_items || 0);
-    } catch (err) {
-      if (err.message === "UNAUTHORIZED") {
-        setAuthToken(null);
-        setIsLoggedIn(false);
+      const [cartRes, profileRes] = await Promise.allSettled([
+        fetchCart(),
+        fetchUserProfile(),
+      ]);
+
+      if (cartRes.status === "fulfilled" && cartRes.value) {
+        setCartCount(cartRes.value.total_items || 0);
+      } else {
+        if (cartRes.reason?.message === "UNAUTHORIZED") {
+          setAuthToken(null);
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+          setCartCount(getGuestCartCount());
+          return;
+        }
+        setCartCount(getGuestCartCount());
       }
+
+      if (profileRes.status === "fulfilled" && profileRes.value) {
+        setCurrentUser(profileRes.value);
+      } else {
+        if (profileRes.reason?.message === "UNAUTHORIZED") {
+          setAuthToken(null);
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+        } else {
+          setCurrentUser(null);
+        }
+      }
+    } catch {
       setCartCount(getGuestCartCount());
     }
   }, []);
@@ -86,16 +111,18 @@ export default function Navbar() {
   useEffect(() => {
     loadCount();
 
-    // Listen for custom cart-updated events from cartStorage
+    // Listen for custom cart-updated and auth-changed events
     const handleCartUpdate = () => {
       loadCount();
     };
 
     window.addEventListener("cart-updated", handleCartUpdate);
+    window.addEventListener("auth-changed", handleCartUpdate);
     window.addEventListener("storage", handleCartUpdate);
 
     return () => {
       window.removeEventListener("cart-updated", handleCartUpdate);
+      window.removeEventListener("auth-changed", handleCartUpdate);
       window.removeEventListener("storage", handleCartUpdate);
     };
   }, [location.pathname, loadCount]);
@@ -104,6 +131,7 @@ export default function Navbar() {
     if (window.confirm("Are you sure you want to sign out?")) {
       setAuthToken(null);
       setIsLoggedIn(false);
+      setCurrentUser(null);
       loadCount();
       setIsMobileMenuOpen(false);
       window.dispatchEvent(new CustomEvent("cart-updated"));
@@ -189,13 +217,15 @@ export default function Navbar() {
             <li className="hidden sm:flex items-center gap-4">
               {isLoggedIn ? (
                 <>
-                  <Link
-                    to="/admin"
-                    className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-black border border-emerald-500/30 text-xs font-bold transition-all"
-                    title="Open Store Admin Panel"
-                  >
-                    Admin
-                  </Link>
+                  {currentUser?.is_admin && (
+                    <Link
+                      to="/admin"
+                      className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-black border border-emerald-500/30 text-xs font-bold transition-all"
+                      title="Open Store Admin Panel"
+                    >
+                      Admin
+                    </Link>
+                  )}
                   <Link
                     to="/account"
                     className="hover:text-forest transition-colors flex items-center gap-1.5 text-white"
@@ -344,17 +374,19 @@ export default function Navbar() {
             <div className="space-y-2 pt-1 pb-2">
               {isLoggedIn ? (
                 <>
-                  <Link
-                    to="/admin"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 py-2.5 px-3 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors text-sm font-semibold"
-                  >
-                    <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span>Store Admin Panel</span>
-                  </Link>
+                  {currentUser?.is_admin && (
+                    <Link
+                      to="/admin"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 py-2.5 px-3 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors text-sm font-semibold"
+                    >
+                      <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <span>Store Admin Panel</span>
+                    </Link>
+                  )}
 
                   <Link
                     to="/account"
