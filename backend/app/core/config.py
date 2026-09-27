@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     r2_access_key_id: str
     r2_secret_access_key: str
     r2_bucket_name: str
+    R2_PUBLIC_URL:str
+
     model_config = SettingsConfigDict(
         env_file="app/core/.env",
         extra="ignore"

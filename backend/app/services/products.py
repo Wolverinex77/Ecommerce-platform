@@ -18,7 +18,6 @@ import uuid
 from fastapi import HTTPException, UploadFile
 from app.core.config import settings
 from app.core.storage import r2_client
-
 from app.core.enums import InventoryType
 
 def create_product(payload:ProductCreate,admin:User,db:Session):
@@ -252,8 +251,7 @@ async def upload_product_images(
             ContentType=image.content_type,
         )
 
-        image_url = key
-
+        image_url = f"{settings.R2_PUBLIC_URL}/{key}"
         
         if is_primary:
             for existing_image in product.images:
