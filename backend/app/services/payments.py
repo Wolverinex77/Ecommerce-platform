@@ -67,14 +67,15 @@ def create_payment(request:PaymentCreate,order_id:int,user,db:Session):
     # -----------------------------
     # Step 3: Build Checkout URL
     # -----------------------------
+    base_url = settings.frontend_url.rstrip("/") if settings.frontend_url else "https://www.shopeasestore.app"
     params = {
         "environment": "sandbox",
         "tracker": tracker_token,
         "tbt": tbt,
         "source": "hosted",
         # "user_id": "cus_5a328a2a-b55a-4a08-8f92-758ae4ac7277",
-        "redirect_url": "http://localhost:8000/payment/success",
-        "cancel_url": "http://localhost:8000/payment/cancel",
+        "redirect_url": f"{base_url}/payment/success?order_id={order_id}",
+        "cancel_url": f"{base_url}/checkout?payment_status=cancelled",
     }
 
     checkout_url = (

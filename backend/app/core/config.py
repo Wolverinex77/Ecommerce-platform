@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     safepay_merchant_key: str
     safepay_webhook_secret: str
     database_url: str
-    frontend_url: str
+    frontend_url: str = "https://www.shopeasestore.app"
     r2_account_id: str
     r2_access_key_id: str
     r2_secret_access_key: str
