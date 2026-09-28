@@ -25,6 +25,7 @@ export default function ProductsPage() {
   const inStockParam = searchParams.get("in_stock");
   const sizeParam = searchParams.get("size"); // comma-separated or single
   const sortParam = searchParams.get("sort") || "featured";
+  const searchQuery = searchParams.get("search") || searchParams.get("q") || "";
 
   // Data states
   const [rawProducts, setRawProducts] = useState([]);
@@ -171,9 +172,19 @@ export default function ProductsPage() {
     setSearchParams(params);
   };
 
-  // Client-side filtering for Size and Sorting
+  // Client-side filtering for Search, Size and Sorting
   const filteredAndSortedProducts = useMemo(() => {
     let result = [...rawProducts];
+
+    // 0. Search keyword filtering
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(
+        (product) =>
+          (product.name && product.name.toLowerCase().includes(q)) ||
+          (product.description && product.description.toLowerCase().includes(q))
+      );
+    }
 
     // 1. Size filtering
     if (selectedSizes.length > 0) {
@@ -196,7 +207,7 @@ export default function ProductsPage() {
     }
 
     return result;
-  }, [rawProducts, selectedSizes, sortBy]);
+  }, [rawProducts, selectedSizes, sortBy, searchQuery]);
 
   // Check if any filters are active
   const hasActiveFilters = Boolean(
@@ -205,7 +216,8 @@ export default function ProductsPage() {
     maxPriceParam ||
     inStockParam === "true" ||
     selectedSizes.length > 0 ||
-    sortBy !== "featured"
+    sortBy !== "featured" ||
+    searchQuery.trim()
   );
 
   return (
@@ -425,6 +437,25 @@ export default function ProductsPage() {
               Active Filters:
             </span>
 
+            {searchQuery && (
+              <span className="inline-flex items-center gap-1.5 text-xs bg-surface border border-hairline px-3 py-1 rounded-full text-white">
+                Search: "{searchQuery}"
+                <button
+                  type="button"
+                  onClick={() => {
+                    const p = new URLSearchParams(searchParams);
+                    p.delete("search");
+                    p.delete("q");
+                    setSearchParams(p);
+                  }}
+                  className="hover:text-rust font-bold"
+                  aria-label="Remove search filter"
+                >
+                  &times;
+                </button>
+              </span>
+            )}
+
             {categoryId && (
               <span className="inline-flex items-center gap-1.5 text-xs bg-surface border border-hairline px-3 py-1 rounded-full text-white">
                 Category: {categoryInfo?.category?.name || `ID #${categoryId}`}
@@ -512,7 +543,7 @@ export default function ProductsPage() {
       </section>
 
       {/* ==================== PRODUCT GRID ==================== */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 pb-20">
+      <section className="max-w-7xl mx-auto px-6 lg:px-8 mt-8 pb-24">
         {loading ? (
           <div className="py-20 text-center text-ink-soft">
             <p className="text-lg animate-pulse">Loading products...</p>
@@ -540,7 +571,7 @@ export default function ProductsPage() {
             </button>
           </div>
         ) : (
-          <div id="product-grid" className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 sm:gap-x-6 gap-y-8 sm:gap-y-10">
+          <div id="product-grid" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-8">
             {filteredAndSortedProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

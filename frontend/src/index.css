@@ -47,6 +47,31 @@ body {
   outline-offset: 2px;
 }
 
+/* ── Hero Full-Viewport & Art Direction ── */
+.hero-container-fullview {
+  height: 100vh;
+  height: 100svh;
+  max-height: 100vh;
+  max-height: 100svh;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+}
+
+.hero-image-responsive {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center center;
+  filter: none;
+}
+
+@media (min-width: 768px) {
+  .hero-image-responsive {
+    object-position: 72% 55%;
+  }
+}
+
 /* ── Mega Menu ── */
 .navigation-dropdown {
   position: relative;

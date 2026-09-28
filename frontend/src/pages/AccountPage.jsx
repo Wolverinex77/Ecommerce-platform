@@ -482,7 +482,7 @@ export default function AccountPage() {
             <div className="space-y-6">
               {/* Profile Overview Card */}
               <div className="bg-surface border border-hairline rounded-md p-6 sm:p-8 space-y-6">
-                <div className="flex items-center justify-between border-b border-hairline pb-4">
+                <div className="border-b border-hairline pb-4">
                   <div>
                     <h2 className="font-display text-xl font-bold text-white">
                       Profile Information
@@ -491,11 +491,6 @@ export default function AccountPage() {
                       Your registered account credentials.
                     </p>
                   </div>
-                  {profile?.id && (
-                    <span className="text-xs font-mono font-semibold text-forest bg-forest/10 border border-forest/20 px-2.5 py-1 rounded-sm">
-                      User ID: #{profile.id}
-                    </span>
-                  )}
                 </div>
 
                 {profileLoading ? (

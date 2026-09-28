@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import AnnouncementBar from "./components/AnnouncementBar";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import CartDrawer from "./components/CartDrawer";
@@ -16,6 +15,8 @@ function AppContent() {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith("/admin");
 
+  const isHomePage = location.pathname === "/";
+
   if (isAdminRoute) {
     return (
       <Routes>
@@ -26,7 +27,6 @@ function AppContent() {
 
   return (
     <div className="bg-paper text-white min-h-screen flex flex-col font-sans">
-      <AnnouncementBar />
       <Navbar />
       <CartDrawer />
       <div className="flex-1">

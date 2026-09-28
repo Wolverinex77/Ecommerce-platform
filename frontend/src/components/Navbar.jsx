@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import MegaMenu from "./MegaMenu";
+import MobileMenu from "./MobileMenu";
 import AuthModal from "./AuthModal";
 import { fetchCart, fetchCategories, fetchUserProfile, getAuthToken, setAuthToken } from "../services/api";
 import { getGuestCartCount } from "../services/cartStorage";
@@ -11,15 +12,30 @@ import { getGuestCartCount } from "../services/cartStorage";
  */
 export default function Navbar() {
   const location = useLocation();
-  const menuRef = useRef(null);
 
+  const isHomePage = location.pathname === "/";
+  const [isScrolled, setIsScrolled] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(Boolean(getAuthToken()));
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isCategoriesAccordionOpen, setIsCategoriesAccordionOpen] = useState(false);
   const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    if (!isHomePage) {
+      setIsScrolled(false);
+      return;
+    }
+
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 40);
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isHomePage]);
 
   const loadCount = useCallback(async () => {
     const token = getAuthToken();
@@ -78,35 +94,9 @@ export default function Navbar() {
   // Close mobile menu whenever the route changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
-    setIsCategoriesAccordionOpen(false);
   }, [location.pathname]);
 
-  // Handle click outside and Escape key to close mobile menu
-  useEffect(() => {
-    if (!isMobileMenuOpen) return;
 
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setIsMobileMenuOpen(false);
-      }
-    };
-
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
-        setIsMobileMenuOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("touchstart", handleClickOutside);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [isMobileMenuOpen]);
 
   useEffect(() => {
     loadCount();
@@ -145,7 +135,17 @@ export default function Navbar() {
 
   return (
     <>
-      <header ref={menuRef} className="bg-[#121212]/90 backdrop-blur-md border-b border-hairline sticky top-0 z-30">
+      <header
+        className={
+          isHomePage
+            ? `fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+                isScrolled
+                  ? "bg-[#121212]/95 backdrop-blur-md border-b border-hairline shadow-md"
+                  : "bg-transparent border-b border-transparent shadow-none"
+              }`
+            : "sticky top-0 z-50 bg-[#121212]/95 backdrop-blur-md border-b border-hairline"
+        }
+      >
         <nav
           className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4 sm:gap-8"
           aria-label="Main navigation"
@@ -156,36 +156,31 @@ export default function Navbar() {
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen((prev) => !prev)}
-              className="md:hidden p-2 -ml-2 text-ink-soft hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-forest rounded-md transition-colors cursor-pointer"
+              className="md:hidden p-2 -ml-2 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-white/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-md transition-colors cursor-pointer"
               aria-label={isMobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
               aria-expanded={isMobileMenuOpen}
             >
-              {isMobileMenuOpen ? (
-                // Close 'X' icon
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                // 3-bar hamburger icon
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
             </button>
 
             {/* Brand */}
             <Link
               to="/"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="font-display text-xl font-bold tracking-tight whitespace-nowrap"
+              className="font-display text-xl font-bold tracking-tight whitespace-nowrap text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]"
             >
               ShopEase
             </Link>
 
-            {/* Desktop Primary Links (Unchanged) */}
+            {/* Desktop Primary Links */}
             <ul className="hidden md:flex items-center gap-6 text-sm font-medium">
               <li>
-                <Link to="/products" className="hover:text-forest transition-colors">
+                <Link
+                  to="/products"
+                  className="text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-white/80 transition-colors"
+                >
                   Shop All
                 </Link>
               </li>
@@ -194,7 +189,7 @@ export default function Navbar() {
               <li className="navigation-dropdown">
                 <button
                   type="button"
-                  className="hover:text-forest transition-colors flex items-center gap-1 cursor-pointer"
+                  className="text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-white/80 transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   Categories
                   <svg className="w-3.5 h-3.5" viewBox="0 0 12 8" fill="none" aria-hidden="true">
@@ -205,7 +200,10 @@ export default function Navbar() {
               </li>
 
               <li>
-                <Link to="/products" className="hover:text-forest transition-colors">
+                <Link
+                  to="/products"
+                  className="text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] hover:text-white/80 transition-colors"
+                >
                   New Arrivals
                 </Link>
               </li>
@@ -220,7 +218,7 @@ export default function Navbar() {
                   {currentUser?.is_admin && (
                     <Link
                       to="/admin"
-                      className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-black border border-emerald-500/30 text-xs font-bold transition-all"
+                      className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-black border border-emerald-500/30 text-xs font-bold transition-all shadow-sm"
                       title="Open Store Admin Panel"
                     >
                       Admin
@@ -228,7 +226,7 @@ export default function Navbar() {
                   )}
                   <Link
                     to="/account"
-                    className="hover:text-forest transition-colors flex items-center gap-1.5 text-white"
+                    className="hover:text-forest transition-colors flex items-center gap-1.5 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]"
                     aria-label="My Account"
                   >
                     <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -236,11 +234,11 @@ export default function Navbar() {
                     </svg>
                     <span>Account</span>
                   </Link>
-                  <span className="text-hairline">|</span>
+                  <span className="text-white/40">|</span>
                   <button
                     type="button"
                     onClick={handleLogout}
-                    className="hover:text-rust transition-colors text-ink-soft text-xs font-semibold cursor-pointer"
+                    className="hover:text-rust transition-colors text-white/80 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] text-xs font-semibold cursor-pointer"
                     aria-label="Sign out"
                     title="Click to sign out"
                   >
@@ -251,7 +249,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={() => setIsAuthModalOpen(true)}
-                  className="hover:text-forest transition-colors flex items-center gap-1.5 text-white cursor-pointer"
+                  className="hover:text-forest transition-colors flex items-center gap-1.5 text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] cursor-pointer"
                   aria-label="Sign in"
                 >
                   <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -266,7 +264,7 @@ export default function Navbar() {
               <button
                 type="button"
                 onClick={handleOpenCart}
-                className="hover:text-forest transition-colors flex items-center gap-1.5 cursor-pointer text-white"
+                className="hover:text-forest transition-colors flex items-center gap-1.5 cursor-pointer text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]"
                 aria-label="Open Cart Bag"
               >
                 <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -280,181 +278,18 @@ export default function Navbar() {
             </li>
           </ul>
         </nav>
-
-        {/* Mobile Slide-Down Menu */}
-        <div
-          className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out border-t border-hairline/50 bg-[#121212] ${
-            isMobileMenuOpen ? "max-h-[85vh] opacity-100 py-5 shadow-2xl" : "max-h-0 opacity-0 py-0"
-          }`}
-        >
-          <div className="px-4 sm:px-6 space-y-5 overflow-y-auto max-h-[calc(85vh-2rem)]">
-            {/* Mobile Navigation Links */}
-            <ul className="space-y-1 text-sm font-medium border-b border-hairline pb-4">
-              <li>
-                <Link
-                  to="/products"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-surface hover:text-forest transition-colors"
-                >
-                  <span>Shop All Products</span>
-                  <span className="text-xs text-ink-soft">&rarr;</span>
-                </Link>
-              </li>
-
-              {/* Collapsible Mobile Categories */}
-              <li>
-                <button
-                  type="button"
-                  onClick={() => setIsCategoriesAccordionOpen((prev) => !prev)}
-                  className="w-full flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-surface hover:text-forest transition-colors text-left cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">Categories</span>
-                  <svg
-                    className={`w-4 h-4 text-ink-soft transition-transform duration-200 ${
-                      isCategoriesAccordionOpen ? "rotate-180 text-forest" : ""
-                    }`}
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {/* Categories Submenu */}
-                {isCategoriesAccordionOpen && (
-                  <div className="pl-4 pr-2 py-2 space-y-3 bg-[#181818]/60 rounded-lg my-1 border border-hairline/60">
-                    {categories.length === 0 ? (
-                      <p className="text-xs text-ink-soft py-1">Loading categories...</p>
-                    ) : (
-                      categories.map((category) => (
-                        <div key={category.id} className="space-y-1.5 pb-2 border-b border-hairline/40 last:border-0 last:pb-0">
-                          <Link
-                            to={`/products?category_id=${category.id}`}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className="text-xs font-semibold text-forest uppercase tracking-wider block hover:underline"
-                          >
-                            {category.name}
-                          </Link>
-                          {category.children && category.children.length > 0 && (
-                            <ul className="pl-2 space-y-1 text-xs text-ink-soft">
-                              {category.children.map((sub) => (
-                                <li key={sub.id}>
-                                  <Link
-                                    to={`/products?category_id=${sub.id}`}
-                                    onClick={() => setIsMobileMenuOpen(false)}
-                                    className="block py-1 hover:text-white transition-colors"
-                                  >
-                                    {sub.name}
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                )}
-              </li>
-
-              <li>
-                <Link
-                  to="/products"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-surface hover:text-forest transition-colors"
-                >
-                  <span>New Arrivals</span>
-                  <span className="text-xs px-2 py-0.5 rounded bg-forest/20 text-forest font-semibold">New</span>
-                </Link>
-              </li>
-            </ul>
-
-            {/* Mobile Account / Cart Utilities */}
-            <div className="space-y-2 pt-1 pb-2">
-              {isLoggedIn ? (
-                <>
-                  {currentUser?.is_admin && (
-                    <Link
-                      to="/admin"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="flex items-center gap-3 py-2.5 px-3 rounded-lg bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-colors text-sm font-semibold"
-                    >
-                      <svg className="w-4 h-4 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                      <span>Store Admin Panel</span>
-                    </Link>
-                  )}
-
-                  <Link
-                    to="/account"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-surface hover:text-forest transition-colors text-sm font-medium"
-                  >
-                    <svg className="w-4 h-4 text-forest" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    <span>My Account</span>
-                  </Link>
-
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-surface text-rust hover:text-rust transition-colors text-sm font-medium text-left cursor-pointer"
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    <span>Sign Out</span>
-                  </button>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    setIsAuthModalOpen(true);
-                  }}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-forest text-black font-semibold text-sm hover:bg-forest-dark transition-colors cursor-pointer"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  <span>Sign In / Register</span>
-                </button>
-              )}
-
-              {/* Mobile Cart Button */}
-              <button
-                type="button"
-                onClick={handleOpenCart}
-                className="w-full flex items-center justify-between py-2.5 px-3 rounded-lg bg-surface hover:bg-hairline text-ink transition-colors text-sm font-medium cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <svg className="w-4 h-4 text-forest" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                  </svg>
-                  <span>Shopping Cart</span>
-                </div>
-                <span className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-forest text-black text-xs font-bold">
-                  {cartCount} items
-                </span>
-              </button>
-            </div>
-          </div>
-        </div>
       </header>
 
-      {/* Background Dim Backdrop when Mobile Menu is Open */}
-      {isMobileMenuOpen && (
-        <div
-          onClick={() => setIsMobileMenuOpen(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-20 md:hidden transition-opacity duration-300"
-          aria-hidden="true"
-        />
-      )}
+      {/* Modern Slide-Over Mobile Hamburger Menu */}
+      <MobileMenu
+        isOpen={isMobileMenuOpen}
+        onClose={() => setIsMobileMenuOpen(false)}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        isLoggedIn={isLoggedIn}
+        currentUser={currentUser}
+        handleLogout={handleLogout}
+        categories={categories}
+      />
 
       <AuthModal
         isOpen={isAuthModalOpen}
