@@ -16,12 +16,14 @@ def payment_success(tracker:str):
     payment = payments.get_payment_by_tracker(tracker)
     print(payment)
     order_id = payment["data"]["metadata"]["order_id"]
-    return RedirectResponse(url=f"http://localhost:5173/payment/success?order_id={order_id}")
+    base_url = settings.frontend_url.rstrip("/") if settings.frontend_url else "https://www.shopeasestore.app"
+    return RedirectResponse(url=f"{base_url}/payment/success?order_id={order_id}")
 
 
 @router.get("/payment/cancel")
 def payment_cancel():
-    return RedirectResponse(url="http://localhost:5173/checkout?payment_status=cancelled")
+    base_url = settings.frontend_url.rstrip("/") if settings.frontend_url else "https://www.shopeasestore.app"
+    return RedirectResponse(url=f"{base_url}/checkout?payment_status=cancelled")
 
 
 
