@@ -106,15 +106,21 @@ def process_webhook(raw_body,signature,db):
         payload = json.loads(raw_body)
         print(json.dumps(payload, indent=4))
 
-        order_id=payload["data"]["metadata"]["order_id"]
+        order_id = payload["data"]["metadata"]["order_id"]
+        if not str(order_id).isdigit():
+            return {"message": "Order not found"}
+
         order_db = db.scalars(
             select(Order)
             .options(
                 selectinload(Order.order_items).selectinload(OrderItem.product),
                 selectinload(Order.order_items).selectinload(OrderItem.variant),
             )
-            .where(Order.id == order_id)
-        ).one()
+            .where(Order.id == int(order_id))
+        ).one_or_none()
+
+        if not order_db:
+            return {"message": "Order not found"}
         
         
         payment=order_db.payment
