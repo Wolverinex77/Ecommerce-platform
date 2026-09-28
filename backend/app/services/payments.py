@@ -67,7 +67,7 @@ def create_payment(request:PaymentCreate,order_id:int,user,db:Session):
     # -----------------------------
     # Step 3: Build Checkout URL
     # -----------------------------
-    base_url = settings.frontend_url.rstrip("/") if settings.frontend_url else "https://www.shopeasestore.app"
+    base_url = "https://www.shopeasestore.app"
     params = {
         "environment": "sandbox",
         "tracker": tracker_token,
