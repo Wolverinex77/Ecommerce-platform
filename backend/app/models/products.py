@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from app.core.enums import InventoryType
 
 if TYPE_CHECKING:
+    from .categories import Category
     from .cart import CartItem
 class Product(Base):
     __tablename__='products'
@@ -33,7 +34,6 @@ class Product(Base):
     category_id: Mapped[int] = mapped_column(
         ForeignKey("categories.id", ondelete="CASCADE")
     )
-    category=relationship("Category",back_populates="products") #M-1
     created_at: Mapped[TIMESTAMP] = mapped_column(
         TIMESTAMP(timezone=True),
         nullable=False,
@@ -45,7 +45,9 @@ class Product(Base):
     onupdate=func.now(),
     nullable=False,
 )
-    cart_items: Mapped["CartItem"] = relationship(
+    category: Mapped["Category"] = relationship(back_populates="products")
+
+    cart_items: Mapped[list["CartItem"]] = relationship(
             back_populates="product"
         )
     variants: Mapped[list["ProductVariant"]] = relationship(

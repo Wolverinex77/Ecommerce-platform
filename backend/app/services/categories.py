@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy import select
 from app.schemas.categories import CategoryUpdate,CategoryCreate,CategoryBulk
 from app.models.users import User
@@ -6,7 +7,12 @@ from app.models.categories import Category
 from app.core.exceptions import CategoryNotFoundError
 
 def create_categories(payload:CategoryCreate,admin:User,db:Session):
-    if payload.parent_id is not None and db.get(Category, payload.parent_id) is None:
+    parent_id = payload.parent_id
+
+    if parent_id is not None:
+        parent = db.get(Category, parent_id)
+
+    if parent is None:
         raise CategoryNotFoundError()
     db_category=Category(name=payload.name,parent_id=payload.parent_id)
     db.add(db_category)
@@ -48,8 +54,10 @@ def create_categories_bulk(payload: CategoryBulk, admin: User, db: Session):
     categories_to_add = []
 
     for item in payload.categories:
-        if item.parent_id is not None and db.get(Category, item.parent_id) is None:
-            raise CategoryNotFoundError()
+        if item.parent_id:
+            parent = db.get(Category, item.parent_id)
+        if not parent:
+            raise HTTPException(status_code=400, detail="Parent category not found")
 
         categories_to_add.append(
             Category(

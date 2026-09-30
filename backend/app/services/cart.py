@@ -153,6 +153,10 @@ def update_cart_item(db: Session, item_id: int, quantity: int, user: User):
     elif product_db.inventory_type == enums.InventoryType.Varient:
         if cart_item.variant_id:
             variant_db = db.get(ProductVariant, cart_item.variant_id)
+            if variant_db is None:
+                raise exceptions.VariantNotFoundError()
+            if variant_db.product_id != product_db.id:
+                raise exceptions.InvalidVariantError()
             if variant_db and variant_db.quantity is not None and variant_db.quantity < quantity:
                 raise exceptions.StockExceededError()
 
